@@ -1,0 +1,119 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+> ⚡️ This project is created and maintained by a professional web developer with expertise in modern web technologies, UI/UX design, and scalable cloud-based systems. It follows best practices for structure, performance, mobile responsiveness, accessibility, SEO optimization, security, and maintainability. # 🔧 Project Rules – Bid Management with Firebase + GitHub Pages
+
+## 🧩 Tech Stack
+
+**Frontend:**
+- React (using Vite or CRA)
+- Tailwind CSS
+- Firebase Web SDK
+- Cursor AI (for development)
+
+**Hosting:**
+- GitHub Pages (for frontend deployment)
+
+**Backend (serverless):**
+- Firebase Authentication
+- Firestore (NoSQL database)
+
+---
+
+## 📦 Functionality
+
+### 1. 🔐 Authentication
+- Firebase Authentication using email and password
+- Every user is assigned a role: `admin` or `ue`
+- Only logged-in users can access data
+
+### 2. 📋 Projects & Bids
+- Admin maps each subcontractor’s email address to an alias (e.g., A, B, C)
+- When a UE logs in, their alias is automatically determined and displayed based on their email
+
+- Admin can create projects and categories (e.g., Ventilation, Electrical)
+- Subcontractors (UE) can only log in and view their own bids
+- UE can see their own price ranking but not others’ aliases
+- The joker is never revealed to UE (only shown as a potential top placement)
+- Admin can mark jokers, change aliases, and add comments
+
+### 3. 🧠 Joker Logic
+- The joker is automatically placed between position 1–3 (or 1–2 if only one real bid exists)
+- Alias is randomly assigned A–C and saved in Firestore
+- Admin can manually adjust joker placement
+
+### 4. 💾 Database Structure (Firestore)
+
+```jsonc
+users (collection)
+  └─ userId (document)
+      ├─ email: "someone@example.com"
+      ├─ role: "ue" or "admin"
+      └─ alias: "A"
+
+
+projects (collection)
+  └─ projectId (document)
+      ├─ name: "Autogyron 3"
+      ├─ deadline: "2026-04-15"
+      └─ categories (collection)
+          └─ categoryId (document)
+              ├─ name: "Ventilation"
+              ├─ deadline: "2026-04-12"
+              └─ bids (collection)
+                  └─ bidId (document)
+                      ├─ alias: "A"
+                      ├─ userId: "authId123"
+                      ├─ price: 455000
+                      ├─ completeness: "90%"
+                      ├─ submitted: "2026-03-15"
+                      ├─ comment: "Complete but missing installation timeline"
+                      └─ isJoker: true
+```
+
+### 5. 🔒 Firestore Rules (pseudo-code)
+```ts
+match /projects/{projectId}/categories/{categoryId}/bids/{bidId} {
+  allow read: if request.auth != null;
+
+  // UE can only read their own bids
+  allow read: if resource.data.userId == request.auth.uid;
+
+  // Admin can read and write everything
+  allow read, write: if get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "admin";
+}
+```
+
+---
+
+## 🧱 Code Structure Guidelines
+
+To keep the project maintainable and scalable, follow this recommended structure:
+
+```
+/src
+├── components/          # Reusable UI components (e.g. BidTable, BidRow, LoginForm)
+├── pages/               # Route-level views (e.g. AdminView, UEView, ProjectPage)
+├── services/            # Firebase logic (auth, firestore queries)
+├── context/             # React context for user and auth state
+├── styles/              # Global and utility CSS or Tailwind config overrides
+├── firebase.js          # Firebase app initialization and config
+└── App.jsx              # App root with routes and layout
+```
+
+- Use functional components and React hooks
+- Separate logic from UI (e.g., Firestore queries live in `services/`)
+- Use environment variables for Firebase config in `.env`
+- Keep authentication and user role handling in global context
+
+---
+
+## 🧪 Features to Expand
+- Automatic joker suggestion after first bid
+- Visual sorting by price
+- Duplicate alias detection
+- Export bids to CSV (admin only)
+- Optional email notifications
+
