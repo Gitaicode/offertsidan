@@ -29,7 +29,7 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode,
 
 function App() {
   return (
-    <Router>
+    <Router basename="/offertsidan">
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { seedFirestoreOnly } from '../services/seedFirestore';
+import { seedTestData } from '../services/seedData';
 
 export const SeedPage = () => {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -9,7 +9,7 @@ export const SeedPage = () => {
     setStatus('loading');
     setError(null);
     try {
-      await seedFirestoreOnly();
+      await seedTestData();
       setStatus('success');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ett fel uppstod');

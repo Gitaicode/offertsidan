@@ -17,14 +17,33 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 
 export const loginUser = async (email: string, password: string) => {
+  console.log('Försöker logga in användare:', email);
   try {
+    // Försök logga in med Firebase Auth
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    console.log('Firebase Auth lyckades, användar-ID:', userCredential.user.uid);
+    
+    // Hämta användardata från Firestore
     const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-    if (userDoc.exists()) {
-      return { ...userDoc.data(), id: userCredential.user.uid } as User;
+    console.log('Firestore användardata hittad:', userDoc.exists());
+    
+    if (!userDoc.exists()) {
+      console.error('Användaren finns inte i Firestore:', userCredential.user.uid);
+      throw new Error('Användardata hittades inte i databasen');
     }
-    throw new Error('User data not found');
-  } catch (error) {
+
+    const userData = userDoc.data();
+    console.log('Användardata:', { ...userData, id: userCredential.user.uid });
+
+    return {
+      ...userData,
+      id: userCredential.user.uid
+    } as User;
+  } catch (error: any) {
+    console.error('Inloggningsfel:', error);
+    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+      throw new Error('Felaktiga inloggningsuppgifter');
+    }
     throw error;
   }
 };

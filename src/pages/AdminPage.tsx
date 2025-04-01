@@ -12,8 +12,7 @@ interface Bid {
   coverage: number;
   submissionDate: string;
   isJoker: boolean;
-  ranking: number;
-  projectId: string;
+  comment?: string;
 }
 
 interface Project {
@@ -39,6 +38,7 @@ export const AdminPage = () => {
   const [bids, setBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,13 +59,15 @@ export const AdminPage = () => {
         } as Project));
         setProjects(projectsData);
 
-        // Hämta alla bud för första projektet
         if (projectsData.length > 0) {
+          setProject(projectsData[0]);
+
+          // Hämta alla bud för projektet
           const bidsSnapshot = await getDocs(
             query(
               collection(db, 'bids'),
               where('projectId', '==', projectsData[0].id),
-              orderBy('ranking')
+              orderBy('price')
             )
           );
           const bidsData = bidsSnapshot.docs.map(doc => ({
@@ -97,15 +99,38 @@ export const AdminPage = () => {
     }
   };
 
-  const handleToggleJoker = async (bidId: string, isJoker: boolean) => {
+  const handleUpdateBid = async (bidId: string, updates: Partial<Bid>) => {
     try {
       await updateDoc(doc(db, 'bids', bidId), {
-        isJoker,
+        ...updates,
         updatedAt: new Date()
       });
-      setBids(bids.map(b => b.id === bidId ? { ...b, isJoker } : b));
+      setBids(bids.map(b => b.id === bidId ? { ...b, ...updates } : b));
     } catch (err) {
-      console.error('Fel vid uppdatering av joker:', err);
+      console.error('Fel vid uppdatering av bud:', err);
+    }
+  };
+
+  const handleSaveAll = async () => {
+    try {
+      await Promise.all(
+        bids.map(bid => 
+          updateDoc(doc(db, 'bids', bid.id), {
+            ...bid,
+            updatedAt: new Date()
+          })
+        )
+      );
+      // Uppdatera projekt deadline om det ändrats
+      if (project) {
+        await updateDoc(doc(db, 'projects', project.id), {
+          deadline: project.deadline,
+          updatedAt: new Date()
+        });
+      }
+    } catch (err) {
+      console.error('Fel vid sparande:', err);
+      setError('Ett fel uppstod när ändringar skulle sparas');
     }
   };
 
@@ -118,91 +143,118 @@ export const AdminPage = () => {
     return <div>Laddar...</div>;
   }
 
-  const project = projects[0];
+  if (error || !project) {
+    return <div className="text-red-600">{error || 'Inget projekt hittades'}</div>;
+  }
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Välkommen!</h1>
-        <button onClick={handleLogout} className="px-4 py-2 bg-gray-200 rounded">
-          Logga ut
-        </button>
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 className="text-3xl font-bold mb-6">Adminvy - Anbudsutvärdering</h1>
+      
+      <p className="mb-8 text-gray-600">
+        När du lägger in det första riktiga anbudet, föreslås att jokern placeras på plats 1–2. När 
+        fler anbud tillkommer föreslås plats 1–3. Du kan manuellt justera alla jokerparametrar 
+        (pris, placering, alias).
+      </p>
 
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Projekt:</h2>
-        <p>Kategori: {project?.category}</p>
-        <p>Upphandlingen ska vara klar: {project?.deadline ? new Date(project.deadline).toLocaleDateString('sv-SE') : '-'}</p>
-      </div>
+      <h2 className="text-2xl font-bold mb-6">Projekt: {project.name}</h2>
 
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-4">Underentreprenörer</h2>
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold mb-4">Kategori: {project.category}</h3>
+          
+          <div className="flex items-center gap-4">
+            <label htmlFor="deadline" className="font-medium">
+              Upphandlingen ska vara klar:
+            </label>
+            <input
+              type="date"
+              id="deadline"
+              value={project.deadline}
+              onChange={(e) => setProject({ ...project, deadline: e.target.value })}
+              className="border rounded px-3 py-2"
+            />
+          </div>
+        </div>
+
         <table className="w-full">
           <thead>
-            <tr>
-              <th className="text-left">Email</th>
-              <th className="text-left">Alias</th>
-              <th className="text-left">Roll</th>
+            <tr className="border-b">
+              <th className="text-left py-2">Alias</th>
+              <th className="text-left py-2">Pris</th>
+              <th className="text-left py-2">Heltäckande offert (%)</th>
+              <th className="text-left py-2">Inlämningsdatum</th>
+              <th className="text-left py-2">Kommentar</th>
             </tr>
           </thead>
           <tbody>
-            {users.filter(u => u.role === 'ue').map((user) => (
-              <tr key={user.id}>
-                <td>{user.email}</td>
-                <td>
-                  <select
-                    value={user.alias}
-                    onChange={(e) => handleUpdateAlias(user.id, e.target.value)}
-                  >
-                    {['A', 'B', 'C', 'D', 'E', 'F'].map(alias => (
-                      <option key={alias} value={alias}>{alias}</option>
-                    ))}
-                  </select>
-                </td>
-                <td>Underentreprenör</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div>
-        <h2 className="text-xl font-bold mb-4">Anbud</h2>
-        <p className="mb-4">Status: Utvärdering pågår</p>
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="text-left">Prisplacering</th>
-              <th className="text-left">Alias</th>
-              <th className="text-left">Heltäckande offert</th>
-              <th className="text-left">Inlämningsdatum</th>
-              <th className="text-left">Joker</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bids.map((bid, index) => (
-              <tr key={bid.id}>
-                <td>{index + 1}</td>
-                <td>{bid.alias}</td>
-                <td>{bid.coverage}%</td>
-                <td>
-                  {bid.submissionDate ? new Date(bid.submissionDate).toLocaleDateString('sv-SE') : '-'}
+            {bids.map((bid) => (
+              <tr 
+                key={bid.id}
+                className={bid.isJoker ? 'bg-[#fff9e6]' : 'hover:bg-gray-50'}
+              >
+                <td className="py-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={bid.alias}
+                      onChange={(e) => handleUpdateBid(bid.id, { alias: e.target.value })}
+                      className="border rounded w-16 px-2 py-1"
+                    />
+                    {bid.isJoker && (
+                      <span className="text-sm text-gray-500">joker</span>
+                    )}
+                  </div>
                 </td>
                 <td>
                   <input
-                    type="checkbox"
-                    checked={bid.isJoker}
-                    onChange={(e) => handleToggleJoker(bid.id, e.target.checked)}
+                    type="number"
+                    value={bid.price}
+                    onChange={(e) => handleUpdateBid(bid.id, { price: Number(e.target.value) })}
+                    className="border rounded w-32 px-2 py-1"
+                  />
+                </td>
+                <td>
+                  <select
+                    value={bid.coverage}
+                    onChange={(e) => handleUpdateBid(bid.id, { coverage: Number(e.target.value) })}
+                    className="border rounded px-2 py-1"
+                  >
+                    {[80, 85, 90, 95, 100].map(value => (
+                      <option key={value} value={value}>{value}%</option>
+                    ))}
+                  </select>
+                </td>
+                <td>
+                  <input
+                    type="date"
+                    value={bid.submissionDate}
+                    onChange={(e) => handleUpdateBid(bid.id, { submissionDate: e.target.value })}
+                    className="border rounded px-2 py-1"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    value={bid.comment || ''}
+                    onChange={(e) => handleUpdateBid(bid.id, { comment: e.target.value })}
+                    className="border rounded w-full px-2 py-1"
+                    placeholder="Lägg till kommentar..."
                   />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <p className="mt-4 text-sm italic">
-          Observera att varje lista kan innehålla en fiktiv anbudsgivare. 
-          Det innebär att det inte alltid är den som ligger först i prisplaceringen som vinner upphandlingen.
-        </p>
+
+        <div className="mt-6">
+          <button
+            onClick={handleSaveAll}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Spara
+          </button>
+        </div>
       </div>
     </div>
   );

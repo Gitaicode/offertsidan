@@ -1,15 +1,7 @@
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { logoutUser } from '../services/firebase';
 
 export const Header = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await logoutUser();
-    navigate('/login');
-  };
 
   return (
     <header className="bg-white border-b border-neutral-light">
@@ -21,12 +13,6 @@ export const Header = () => {
               Ditt alias för det här projektet är <span className="font-semibold">{user?.alias}</span>
             </p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="btn-secondary"
-          >
-            Logga ut
-          </button>
         </div>
       </div>
     </header>

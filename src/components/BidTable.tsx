@@ -1,55 +1,80 @@
 import { Bid } from '../types';
+import { User } from '../types';
 
 interface BidTableProps {
   bids: Bid[];
-  currentUserAlias: string;
+  currentUser: User | null;
 }
 
-export const BidTable = ({ bids, currentUserAlias }: BidTableProps) => {
+export const BidTable = ({ bids, currentUser }: BidTableProps) => {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead className="bg-neutral-light/30">
-          <tr>
-            <th className="px-6 py-3 text-left text-sm font-semibold text-dark">
-              Prisplacering
-            </th>
-            <th className="px-6 py-3 text-left text-sm font-semibold text-dark">
-              Alias
-            </th>
-            <th className="px-6 py-3 text-left text-sm font-semibold text-dark">
-              Heltäckande offert
-            </th>
-            <th className="px-6 py-3 text-left text-sm font-semibold text-dark">
-              Inlämningsdatum
-            </th>
+    <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
+      <thead>
+        <tr>
+          <th style={{ 
+            textAlign: 'left', 
+            fontWeight: 'normal', 
+            borderBottom: '1px solid #D1D5DB', 
+            paddingBottom: '0.5rem' 
+          }}>
+            Prisplacering
+          </th>
+          <th style={{ 
+            textAlign: 'left', 
+            fontWeight: 'normal', 
+            borderBottom: '1px solid #D1D5DB', 
+            paddingBottom: '0.5rem' 
+          }}>
+            Alias
+          </th>
+          <th style={{ 
+            textAlign: 'left', 
+            fontWeight: 'normal', 
+            borderBottom: '1px solid #D1D5DB', 
+            paddingBottom: '0.5rem' 
+          }}>
+            Heltäckande offert
+          </th>
+          <th style={{ 
+            textAlign: 'left', 
+            fontWeight: 'normal', 
+            borderBottom: '1px solid #D1D5DB', 
+            paddingBottom: '0.5rem' 
+          }}>
+            Inlämningsdatum
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {bids.map((bid, index) => (
+          <tr key={bid.id}>
+            <td style={{ 
+              padding: '0.5rem 0', 
+              borderBottom: '1px solid #D1D5DB' 
+            }}>
+              {index + 1}
+            </td>
+            <td style={{ 
+              padding: '0.5rem 0', 
+              borderBottom: '1px solid #D1D5DB' 
+            }}>
+              {bid.alias}{bid.alias === currentUser?.alias ? ' (du)' : ''}
+            </td>
+            <td style={{ 
+              padding: '0.5rem 0', 
+              borderBottom: '1px solid #D1D5DB' 
+            }}>
+              {bid.coverage}%
+            </td>
+            <td style={{ 
+              padding: '0.5rem 0', 
+              borderBottom: '1px solid #D1D5DB' 
+            }}>
+              {bid.submissionDate ? new Date(bid.submissionDate).toLocaleDateString('sv-SE') : '-'}
+            </td>
           </tr>
-        </thead>
-        <tbody className="divide-y divide-neutral-light">
-          {bids.map((bid, index) => (
-            <tr 
-              key={bid.id}
-              className={`
-                ${bid.alias === currentUserAlias ? 'bg-primary-dark' : 'bg-white'}
-                hover:bg-neutral-light/10 transition-colors duration-150
-              `}
-            >
-              <td className="px-6 py-4 text-sm text-dark">
-                {index + 1}
-              </td>
-              <td className="px-6 py-4 text-sm text-dark">
-                {bid.alias} {bid.isJoker && '(joker)'}
-              </td>
-              <td className="px-6 py-4 text-sm text-dark">
-                {bid.coverage}%
-              </td>
-              <td className="px-6 py-4 text-sm text-dark">
-                {bid.submissionDate ? new Date(bid.submissionDate).toLocaleDateString('sv-SE') : '-'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </table>
   );
 }; 

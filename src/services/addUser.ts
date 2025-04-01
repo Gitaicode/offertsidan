@@ -6,8 +6,8 @@ export const addSingleUser = async (userId: string) => {
     // Skapa användardokument
     await setDoc(doc(db, 'users', userId), {
       email: 'mikaelpersson90@hotmail.com',
-      alias: 'C',
-      role: 'admin', // Admin roll
+      alias: 'ADMIN',
+      role: 'admin',
       createdAt: new Date(),
       updatedAt: new Date()
     });
@@ -21,7 +21,7 @@ export const addSingleUser = async (userId: string) => {
       updatedAt: new Date()
     });
 
-    console.log('Användare och testanbud har skapats');
+    console.log('Admin-användare har skapats');
   } catch (error) {
     console.error('Fel vid skapande av användare:', error);
     throw error;
