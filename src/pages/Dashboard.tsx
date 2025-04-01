@@ -3,16 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { Header } from '../components/Header';
-
-interface Bid {
-  id: string;
-  alias: string;
-  price: number;
-  coverage: number;
-  submissionDate: string;
-  isJoker: boolean;
-  ranking: number;
-}
+import { BidTable } from '../components/BidTable';
+import { Bid } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { logoutUser } from '../services/firebase';
+import { Logo } from '../components/Logo';
 
 interface Project {
   id: string;
@@ -24,10 +19,16 @@ interface Project {
 
 export const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleLogout = async () => {
+    await logoutUser();
+    navigate('/login');
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,7 +58,7 @@ export const Dashboard = () => {
               id: doc.id,
               ...doc.data()
             } as Bid))
-            .sort((a, b) => a.ranking - b.ranking);
+            .sort((a, b) => (a.ranking ?? 0) - (b.ranking ?? 0));
 
           setBids(bidsData);
         }
@@ -75,6 +76,9 @@ export const Dashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-primary-dark">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+          <Logo />
+        </div>
         <Header />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">Laddar...</div>
@@ -86,6 +90,9 @@ export const Dashboard = () => {
   if (error || !project) {
     return (
       <div className="min-h-screen bg-primary-dark">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+          <Logo />
+        </div>
         <Header />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-accent">
@@ -98,6 +105,9 @@ export const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-primary-dark">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <Logo />
+      </div>
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -108,54 +118,25 @@ export const Dashboard = () => {
           </p>
         </div>
 
-        <div className="card p-6">
+        <div className="bg-white p-6">
           <p className="text-dark mb-4">
             Nedan ser du dina upphandlingar där du lämnat pris.
           </p>
 
-          <div className="bg-white rounded-lg overflow-hidden">
-            <div className="p-4 bg-neutral-light/10">
-              <p className="text-dark">Status: Utvärdering pågår</p>
-            </div>
+          <BidTable bids={bids} currentUser={user} />
+        </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-neutral-light/30">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-dark">Prisplacering</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-dark">Alias</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-dark">Heltäckande offert</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-dark">Inlämningsdatum</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-light">
-                  {bids.map((bid, index) => (
-                    <tr 
-                      key={bid.id}
-                      className={`
-                        ${bid.alias === user?.alias ? 'bg-primary-light/10' : 'bg-white'}
-                        hover:bg-neutral-light/10 transition-colors duration-150
-                      `}
-                    >
-                      <td className="px-6 py-4 text-sm text-dark">{index + 1}</td>
-                      <td className="px-6 py-4 text-sm text-dark">
-                        {bid.alias}{bid.alias === user?.alias ? ' (du)' : ''}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-dark">{bid.coverage}%</td>
-                      <td className="px-6 py-4 text-sm text-dark">
-                        {bid.submissionDate ? new Date(bid.submissionDate).toLocaleDateString('sv-SE') : '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        <p className="mt-6 text-sm text-gray-600 text-center" style={{ fontStyle: 'italic' }}>
+          Observera att varje lista innehåller en fiktiv anbudsgivare. Det är inte alltid den som ligger först i listan som vinner upphandligen. Detta är endast en fingervisning om din placering i upphandlingen.
+        </p>
 
-            <div className="p-4 bg-neutral-light/10 text-sm text-dark-light italic">
-              Observera att varje lista kan innehålla en fiktiv anbudsgivare. 
-              Det innebär att det inte alltid är den som ligger först i prisplaceringen som vinner upphandlingen.
-            </div>
-          </div>
+        <div className="mt-8 text-center">
+          <button
+            onClick={handleLogout}
+            className="btn-secondary"
+          >
+            Logga ut
+          </button>
         </div>
       </main>
     </div>
